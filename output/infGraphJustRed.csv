@@ -1,0 +1,11 @@
+Label,Source,Target,Weight
+Tarqumya,Tarqumya,Zif,18.46298803776153
+Tarqumya,Tarqumya,Hebron,10.775657575252824
+Tarqumya,Tarqumya,Birin,17.392018610801053
+Tarqumya,Tarqumya,al-Buweib,13.57290552834907
+Zif,Zif,Hebron,7.9816691906870085
+Zif,Zif,Birin,2.5911981200736687
+Zif,Zif,al-Buweib,7.033673949769757
+Hebron,Hebron,Birin,6.622387866224861
+Hebron,Hebron,al-Buweib,6.321392869228939
+Birin,Birin,al-Buweib,7.880552942130578

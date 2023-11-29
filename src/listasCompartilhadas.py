@@ -13,3 +13,6 @@ listaAlQuds = []
 listaJericho = []
 listaRamallah = []
 Full_lista = []
+color_red = 0
+color_yellow = 0
+color_orange = 0 

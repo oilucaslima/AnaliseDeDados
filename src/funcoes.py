@@ -45,10 +45,16 @@ def coordenadas(lista):
 def determinar_cor(cidade):
     if cidade.total >= 10:
         cor = 'red'
+        global color_red 
+        color_red = color_red + 1
     elif 5 < cidade.total < 10:
         cor = 'orange'
+        global color_orange 
+        color_orange = color_orange + 1
     elif cidade.total <= 5:
         cor = 'yellow'
+        global color_yellow 
+        color_yellow = color_yellow + 1
     else:
         cor = 'lightblue'
     return cor
@@ -58,11 +64,10 @@ def removerNos(G):
     G.remove_nodes_from(nos_a_remover)
 
 def grafo(lista,start):
-    # Criando um grafo ponderado simples
     G = nx.Graph()
     edge_data = {}
     edge_dataColor = {}
-
+    
     for cidade_info in lista:
         nome = cidade_info.cidade
         ataque = cidade_info.total  
@@ -70,7 +75,6 @@ def grafo(lista,start):
         edge_dataColor[(cidade_info.cidade, cidade_info.cidade)] = cor
         G.add_node(nome, latitude=float(cidade_info.latitude), longitude=float(cidade_info.longitude), total = ataque, cor = cor)
 
-    # Calcule e adicione as arestas (distâncias) entre as cidades com base nas coordenadas
     for cidade_info1 in lista:
         for cidade_info2 in lista:
             if cidade_info1 != cidade_info2:
@@ -82,25 +86,24 @@ def grafo(lista,start):
                 G.add_edge(cidade_info1.cidade, cidade_info2.cidade, weight=distancia)
                 edge_data[(cidade_info1.cidade, cidade_info2.cidade)] = distancia
         
-    salvarCSV(edge_data)
-    salvarCSV2(edge_dataColor)
+    print("Localidades: ", color_red," vermelho,", color_orange," laranja,", color_yellow," amarelo")
 
-    # Obtendo o layout para plotar o grafo
     pos = nx.spring_layout(G)
-    # Plotando o grafo original
     nx.draw(G, pos, with_labels=True, node_color=[G.nodes[v].get('cor', 'lightblue') for v in G.nodes], font_color='black', font_weight='bold', node_size=700)
     plt.title("Grafo Original")
     plt.show()
 
     removerNos(G)
+    salvarCSVapenasVermelhos(G)
     nx.draw(G, pos, with_labels=True, node_color=[G.nodes[v].get('cor', 'lightblue') for v in G.nodes], font_color='black', font_weight='bold', node_size=700)
     plt.title("Grafo Pos corte")
     plt.show()
 
+    nome, maior_ataque_bfs = bfs_maior_ataque(G,start)
+    print(f'O nó {nome} com o maior ataque tem valor: {maior_ataque_bfs}')
+
     agm = nx.minimum_spanning_tree(G)
-    # Obtendo o layout para plotar o grafo
     pos = nx.spring_layout(agm)
-    # Plotando a Árvore Geradora Mínima
     nx.draw(agm, pos, with_labels=True, node_color=[G.nodes[v].get('cor', 'lightblue') for v in agm.nodes], font_color='black', font_weight='bold', node_size=700)
     labels_agm = nx.get_edge_attributes(agm, 'weight')
     formatted_labels_agm = {edge: f"{weight:.0f}" for edge, weight in labels_agm.items()}
@@ -108,49 +111,45 @@ def grafo(lista,start):
     plt.title("Árvore Geradora Mínima do Subgrafo")
     plt.show()
 
-    nome, maior_ataque_bfs = bfs_maior_ataque(agm,start)
-    print(f'O nó {nome} com o maior ataque tem valor: {maior_ataque_bfs}')
-
-    df = pd.DataFrame({
-        'Node': agm.nodes(),
-    })
-    df.to_csv('output/informacoes_da_rede.csv', index=False)
-    df_edges = pd.DataFrame([(u, v, d['weight']) for u, v, d in agm.edges(data=True)], columns=['Source', 'Target', 'Distance'])
-    df_edges.to_csv('output/informacoes_das_arestas.csv', index=False)
+    salvarCSV(edge_data)
+    salvarCSV2(edge_dataColor)
   
 def salvarCSV(edge_data):
-    csv_file = "output/grafo.csv"
+    csv_file = "output/graph.csv"
 
-    # Abrir o arquivo CSV em modo de escrita
     with open(csv_file, mode='w', newline='') as file:
-        # Criar um escritor CSV
         writer = csv.writer(file)
-
-        # Escrever o cabeçalho (opcional, dependendo dos requisitos)
         writer.writerow(['Source', 'Target', 'Weight'])
-
-        # Iterar sobre as entradas do grafo_dict e escrever no arquivo CSV
         for (cidade1, cidade2), distancia in edge_data.items():
             writer.writerow([cidade1, cidade2, distancia])
 
     print(f"As informações foram salvas no arquivo CSV: {csv_file}")
 
 def salvarCSV2(edge_data):
-    csv_file = "output/grafo2.csv"
+    csv_file = "output/graphColor.csv"
 
-    # Abrir o arquivo CSV em modo de escrita
     with open(csv_file, mode='w', newline='') as file:
-        # Criar um escritor CSV
         writer = csv.writer(file)
-
-        # Escrever o cabeçalho (opcional, dependendo dos requisitos)
         writer.writerow(['Id', 'Label', 'Cor'])
-
-        # Iterar sobre as entradas do grafo_dict e escrever no arquivo CSV
         for (cidade1, cidade2), cor in edge_data.items():
             writer.writerow([cidade1, cidade2, cor])
 
     print(f"As informações foram salvas no arquivo CSV: {csv_file}")
+
+def salvarCSVapenasVermelhos(G):
+    with open('output/infGraphJustRed.csv', 'w', newline='') as csvfile:
+        # Crie um objeto escritor CSV
+        csv_writer = csv.writer(csvfile)
+
+        # Escreva o cabeçalho do CSV
+        csv_writer.writerow(['Label','Source', 'Target', 'Weight'])
+
+        # Iterar sobre as arestas do grafo e escrever as informações no arquivo CSV
+        for edge in G.edges(data=True):
+            cidade1, cidade2, data = edge
+            peso = data['weight']
+
+            csv_writer.writerow([cidade1,cidade1, cidade2, peso])
 
 def salvarCSV3(lista):
     csv_file = "output/FullNos.csv"
@@ -179,37 +178,37 @@ def gerar_TodasLista():
             
             regiao(nome,tipo,Full_lista)
 
-            if distrito == 'Hebron':  #ok
+            if distrito == 'Hebron':  
                 regiao(nome,tipo,listaHebron)
             
-            if distrito == 'Tulkarm': #ok
+            if distrito == 'Tulkarm': 
                 regiao(nome,tipo,listaTulkarm)
             
-            if distrito == 'al-Quds': #ok
+            if distrito == 'al-Quds': 
                 regiao(nome,tipo,listaAlQuds)
 
-            if distrito == 'Jericho': #ok
+            if distrito == 'Jericho': 
                 regiao(nome,tipo,listaJericho)
             
-            if distrito == 'Jenin': #ok
+            if distrito == 'Jenin': 
                 regiao(nome,tipo,listaJenin)
             
-            if distrito == 'Salfit': #ok
+            if distrito == 'Salfit': 
                 regiao(nome,tipo,listaSalfit)
             
-            if distrito == 'Nablus': #ok
+            if distrito == 'Nablus': 
                 regiao(nome,tipo,listaNablus)
 
-            if distrito == 'Bethlehem': #ok
+            if distrito == 'Bethlehem': 
                 regiao(nome,tipo,listaBethlehem)
 
-            if distrito == 'Tubas': #ok
+            if distrito == 'Tubas': 
                 regiao(nome,tipo,listaTubas)
 
-            if distrito == 'Qalqiliya': #ok
+            if distrito == 'Qalqiliya': 
                 regiao(nome,tipo,listaQalqiliya)
 
-            if distrito == 'Ramallah and al-Bira': #ok
+            if distrito == 'Ramallah and al-Bira': 
                 regiao(nome,tipo,listaRamallah)
 
 def adicionar_Coordenadas():
@@ -252,31 +251,41 @@ def infos():
     case = int(input("Digite o case: "))
 
     if(case == 1):
+        print("Quantidade de locais no distrito de Hebron processados: ",len(listaHebron))
         grafo(listaHebron,"Hebron")
     elif(case == 2):
+        print("Quantidade de locais no distrito de Tulkarm processados: ",len(listaTulkarm))
         grafo(listaTulkarm,"Tulkarm")
     elif(case == 3):
+        print("Quantidade de locais no distrito de Al-Quds processados: ",len(listaAlQuds))
         grafo(listaAlQuds,"Hizma")
     elif(case == 4):
+        print("Quantidade de locais no distrito de Jericho processados: ",len(listaJericho))
         grafo(listaJericho,"Jericho")
     elif(case == 5):
+        print("Quantidade de locais no distrito de Jenin processados: ",len(listaJenin))
         grafo(listaJenin,"Jenin R.C.")
     elif(case == 6):
+        print("Quantidade de locais no distrito de Salfit processados: ",len(listaSalfit))
         grafo(listaSalfit,"Haris")
     elif(case == 7):
+        print("Quantidade de locais no distrito de Nablus processados: ",len(listaNablus))
         grafo(listaNablus,"Duma")
     elif(case == 8):
+        print("Quantidade de locais no distrito de Bethlehem processados: ",len(listaBethlehem))
         grafo(listaBethlehem,"Nahhalin")
     elif(case == 9):
+        print("Quantidade de locais no distrito de Tubas processados: ",len(listaTubas))
         grafo(listaTubas,"Bardalah")
     elif(case == 10):
         #sem regiao
-        grafo(listaQalqiliya,"")
+        print("Quantidade de locais no distrito de Qalqiliya processados: ",len(listaQalqiliya))
+        #grafo(listaQalqiliya,"")
     elif(case == 11):
+        print("Quantidade de locais no distrito de Ramallah processados: ",len(listaRamallah))
         grafo(listaRamallah,"al-Mughayir")
     elif(case == 12):
+        print("Quantidade de locais no Estado da Palestina processados: ",len(Full_lista))
         grafo(Full_lista,"Hebron")
-
-
-    #salvarCSV3(Full_lista)        
+    
     
